@@ -1,0 +1,1 @@
+export const DEPLOY_SCRIPT_PATH = "./scripts/deploy.js";

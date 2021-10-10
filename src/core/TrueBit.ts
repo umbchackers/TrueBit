@@ -1,13 +1,15 @@
 import { Client, Snowflake } from "discord.js";
 import CommandManager from "@truebit/managers/CommandManager";
+import EventManager from "@truebit/managers/EventManager";
+import logger from "@truebit/utils/logger";
 import { DEPLOY_SCRIPT_PATH } from "./constants";
 import { spawn } from "child_process";
-import logger from "@truebit/utils/logger";
 
 export default
 class extends Client 
 {
     protected commandManager: CommandManager;
+    protected eventManager: EventManager;
 
     constructor()
     {
@@ -19,6 +21,7 @@ class extends Client
         });
 
         this.commandManager = new CommandManager(this);
+        this.eventManager = new EventManager(this);
     }
 
     /**

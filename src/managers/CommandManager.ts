@@ -1,6 +1,8 @@
 import TrueBit from "@truebit/core/TrueBit";
 import { Collection } from "discord.js";
 import { SlashCommandBuilder } from "@discordjs/builders";
+import { recursivelyReaddir } from "@truebit/utils/commonUtils";
+import { resolve } from "path";
 
 export default
 class
@@ -11,6 +13,7 @@ class
     constructor(private client: TrueBit)
     {
         this.slashCommands = new Collection();
+        this.addHandlers();
     }
 
     public defineCommand(key: string, cmd: SlashCommandBuilder)
@@ -24,5 +27,12 @@ class
     public fetchAllCommands()
     {
         return this.slashCommands.map(cmd => cmd.toJSON());
+    }
+
+    private addHandlers()
+    {
+        recursivelyReaddir(resolve(__dirname, `..`, "commands")).then(files => {
+            // TODO
+        });
     }
 }

@@ -1,4 +1,5 @@
-import { Client, Snowflake } from "discord.js";
+import { ApplicationCommandPermissionData, Client, Snowflake } from "discord.js";
+import { SlashCommandBuilder } from "@discordjs/builders";
 import CommandManager from "@truebit/managers/CommandManager";
 import EventManager from "@truebit/managers/EventManager";
 import logger from "@truebit/utils/logger";
@@ -6,10 +7,12 @@ import { DEPLOY_SCRIPT_PATH } from "./constants";
 import { spawn } from "child_process";
 
 export default
-class extends Client 
+class TrueBit extends Client 
 {
-    protected commandManager: CommandManager;
-    protected eventManager: EventManager;
+    public static readonly OWNER_UID: string = "200042113814102016";
+
+    public commandManager: CommandManager;
+    public eventManager: EventManager;
 
     constructor()
     {
@@ -46,5 +49,39 @@ class extends Client
                 resolve();
             })
         });
+    }
+
+    /**
+     * !! Run this ONCE !!
+     */
+    public async __defineAllCommands()
+    {
+        [
+            new SlashCommandBuilder().setName("test").setDescription("Test command"),
+
+        ]
+        .map(val => this.commandManager.defineCommand(val.name, val));
+    }
+
+    /**
+     * !! Run this ONCE !!
+     * @param guildId 
+     */
+    public async __createGlobalDeployCmd(guildId: Snowflake)
+    {
+        if (!this.application?.owner) 
+            await this.application?.fetch();
+
+        this.commandManager.defineCommand("__globalDeploy", new SlashCommandBuilder().setName("deployscript").setDescription("Runs the deploy script").setDefaultPermission(false));
+        const appCommand = await this.application?.commands.create(this.commandManager.slashCommands.get("__globalDeploy")?.toJSON()! as any);
+        const permissions = [
+            {
+                id: TrueBit.OWNER_UID,
+                type: `USER`,
+                permission: true
+            }
+        ];
+        // @ts-ignore
+        await appCommand?.permissions.set({ permissions, guild: guildId });
     }
 }

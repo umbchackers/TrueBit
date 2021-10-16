@@ -1,10 +1,16 @@
 require("dotenv").config()
 const Discord = require("discord.js");
+
 const fs = require("fs");
 const { createClient } = require('@typeform/api-client')
 
 const IDList = require("./ids.json");
 const names = require("./names.json");
+//const guild_id = "889222242695786546"
+const guild_id = "898304048363634719"
+
+
+
 const bot = new Discord.Client({
     fetchAllMembers: true
 });
@@ -88,16 +94,50 @@ bot.on("message", async msg => {
 
     if(msg.channel.type == "dm")
     {
+
+
         if (msg.content.includes("@")){
-          responses = await getAPIResponses();
-          console.log(responses)
+          var registered = false;
+          var updated_responses = await getAPIResponses();
+          for (var x in updated_responses){
+            //console.log(updated_responses[x])
+            if (typeof(updated_responses[x][0]) != "undefined"  ){
+              if (updated_responses[x][0].trim().toLowerCase() == msg.content.trim().toLowerCase()){
+                registered = true;
+                var email = updated_responses[x][0]
+                fs.writeFile('users.txt', msg.author.id + ',' + email + '\n', { flag: 'a+' }, err => {})
+
+              }
+            }
+          }
+          if (registered){
+            msg.channel.send("You have successfully checked-in to hackUMBC. Give it a few minutes and you should soon gain access to all the hacker channels!");
+            var guild = bot.guilds.cache.get('898304048363634719')
+            let role = guild.roles.cache.find(role => role.name === "hacker");
+            guild.members.cache.get(msg.author.id).roles.add(role).catch(console.error);
+
+          }else{
+            const embed = new Discord.MessageEmbed()
+              .setColor('#0099ff')
+              .setTitle('Please Register Here')
+              .setURL('http://www.hackUMBC.org')
+              .addField("Welcome to hackUMBC Fall 2021!", "\u200b")
+              .addField("There is no hackUMBC registration associated with this email.", "\u200b")
+              .setThumbnail("https://www.hackumbc.org/assets/img/halloween-dog-logo.png")
+
+              .addField("Register here and resend your email afterwards to gain access to the rest of the hackUMBC server.", "\u200b")
+
+
+              msg.channel.send({embed: embed});
+
+
+          }
         }
         for(const id of registeredList.keyArray())
         {
             if(msg.content.startsWith(id))
             {
                 const authorID = msg.author.id;
-
                 if(!registeredList.get(id).includes(`<@!${authorID}>`))
                 {
                     registeredList.get(id).push(`<@!${authorID}>`);

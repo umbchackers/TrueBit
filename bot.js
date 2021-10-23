@@ -1,15 +1,20 @@
 require("dotenv").config()
 const Discord = require("discord.js");
-
+const codes = require( "./checkin_codes.js" )
 const fs = require("fs");
 const { createClient } = require('@typeform/api-client')
 
 const IDList = require("./ids.json");
 const names = require("./names.json");
-//const guild_id = "889222242695786546"
-const guild_id = "898304048363634719"
+const guild_id = "889222242695786546"
+//const guild_id = "898304048363634719"
+const commander_ids = [
+  '227146178943385600'
+]
+const startCareerFair = "BEGIN CAREER FAIR"
 
-
+const endCareerFair = "END CAREER FAIR"
+hacker_role_name = "Hackers"
 
 const bot = new Discord.Client({
     fetchAllMembers: true
@@ -19,6 +24,7 @@ const settings = {
     COMMAND_ROLE: "767965691454160966",
     OWNER_ID: "200042113814102016"
 };
+const ONE_HOUR = 60 * 60 * 1000;
 
 //var main_registration1 = {}
 var main_registration2 = {}
@@ -37,6 +43,7 @@ async function getAPIResponses(){
     var all_emails_schools = []
     for (const x of all_responses["main_registration1"]["items"]){
       if (typeof(x["answers"][20]) != "undefined"  && typeof(x["answers"][20]["text"]) != "undefined"){
+
         all_emails_schools.push([x["answers"][2]["email"], x["answers"][5]["text"], x["answers"][20]["text"]])
       }else{
         all_emails_schools.push([x["answers"][2]["email"], x["answers"][5]["text"], ""])
@@ -49,11 +56,17 @@ async function getAPIResponses(){
           pageSize:1000,
           before: main_registration1["items"][main_registration1["items"].length - 1]["token"]
 
+
       });
     for (const x of all_responses["main_registration2"]["items"]){
 
+      if (typeof(x["answers"][20]) != "undefined"  && typeof(x["answers"][20]["text"]) != "undefined"){
+
         all_emails_schools.push([x["answers"][2]["email"], x["answers"][5]["text"], x["answers"][20]["text"]])
-      }
+      }else{
+        all_emails_schools.push([x["answers"][2]["email"], x["answers"][5]["text"], ""])
+
+      }      }
     all_responses["involvement_fest"] = await typeformAPI.responses.list({
           uid:'mxuplTow',
           pageSize:1000,
@@ -80,10 +93,11 @@ async function getAPIResponses(){
 const registeredList = new Discord.Collection();
 
 bot.on("ready", async () => {
-    console.log("I'm ready");
+    console.log("Starting")
     responses = await getAPIResponses();
-    console.log(responses)
     readList();
+    console.log("I'm ready");
+
     bot.user.setActivity("", { type: "COMPETING" });
 
     // console.log(registeredList.get("FCXWU"));
@@ -112,8 +126,8 @@ bot.on("message", async msg => {
           }
           if (registered){
             msg.channel.send("You have successfully checked-in to hackUMBC. Give it a few minutes and you should soon gain access to all the hacker channels!");
-            var guild = bot.guilds.cache.get('898304048363634719')
-            let role = guild.roles.cache.find(role => role.name === "hacker");
+            var guild = bot.guilds.cache.get(guild_id)
+            let role = guild.roles.cache.find(role => role.name === hacker_role_name);
             guild.members.cache.get(msg.author.id).roles.add(role).catch(console.error);
 
           }else{
@@ -124,7 +138,6 @@ bot.on("message", async msg => {
               .addField("Welcome to hackUMBC Fall 2021!", "\u200b")
               .addField("There is no hackUMBC registration associated with this email.", "\u200b")
               .setThumbnail("https://www.hackumbc.org/assets/img/halloween-dog-logo.png")
-
               .addField("Register here and resend your email afterwards to gain access to the rest of the hackUMBC server.", "\u200b")
 
 
@@ -133,22 +146,52 @@ bot.on("message", async msg => {
 
           }
         }
-        for(const id of registeredList.keyArray())
-        {
-            if(msg.content.startsWith(id))
-            {
-                const authorID = msg.author.id;
-                if(!registeredList.get(id).includes(`<@!${authorID}>`))
-                {
-                    registeredList.get(id).push(`<@!${authorID}>`);
-                    msg.channel.send("You've been successfully registered");
-                }
-                else
-                    msg.channel.send("You've already registered for this event!");
+
+        if (msg.content.trim().length == 8){
+          for (x in codes.codes){
+            if (msg.content.trim().toUpperCase() == codes.codes[x][0]){
+
+              if (Math.abs(msg.createdAt-(new Date(codes.codes[x][1]))) < ONE_HOUR){
+                msg.channel.send("You have successfully checked in for this event!")
+                fs.writeFile('checkInLog.txt', msg.author.id + ',' + codes.codes[x][0] + '\n', { flag: 'a+' }, err => {})
+
+              }
+              else{
+                msg.channel.send("The check-in code entered has either expired or is invalid");
+              }
+
             }
+          }
+        }
+        if (commander_ids.includes(msg.author.id)){
+          if (msg.content.trim() == startCareerFair){
+            var guild = bot.guilds.cache.get(guild_id)
+
+            let hacker_role = guild.roles.cache.find(role => role.name === hacker_role_name);
+            let career_fair_role = guild.roles.cache.find(role => role.name === "career_fair");
+
+            let membersWithRole = hacker_role.members;
+            membersWithRole.forEach(member =>{
+              member.roles.add(career_fair_role)
+              member.roles.remove(hacker_role)
+            })
+          }
+          if (msg.content.trim() == endCareerFair){
+            var guild = bot.guilds.cache.get(guild_id)
+
+            let hacker_role = guild.roles.cache.find(role => role.name === hacker_role_name);
+            let career_fair_role = guild.roles.cache.find(role => role.name === "career_fair");
+
+            let membersWithRole = career_fair_role.members;
+            membersWithRole.forEach(member =>{
+              member.roles.add(hacker_role)
+              member.roles.remove(career_fair_role)
+            })
+          }
         }
 
-        console.log(`${msg.author.username} said "${msg.content}"`);
+
+        console.log(`${msg.author.id}: ${msg.author.username} said "${msg.content}" at ${msg.createdAt}`);
         return;
     }
     const prefixRegex = new RegExp(`^(<@!?${bot.user.id}>)\\s*`);

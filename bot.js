@@ -9,13 +9,15 @@ const names = require("./names.json");
 const guild_id = "889222242695786546"
 //const guild_id = "898304048363634719"
 const commander_ids = [
-  '227146178943385600'
+  '227146178943385600',
+  '145758282206806016'
 ]
 const startCareerFair = "BEGIN CAREER FAIR"
 
 const endCareerFair = "END CAREER FAIR"
-hacker_role_name = "Hackers"
-
+var hacker_role_name = "Hackers"
+var us_hacker_role = 'UMBC Hackers'
+var umbc_hacker_role = 'US Hackers'
 const bot = new Discord.Client({
     fetchAllMembers: true
 });
@@ -42,13 +44,31 @@ async function getAPIResponses(){
           pageSize:1000});
     var all_emails_schools = []
     for (const x of all_responses["main_registration1"]["items"]){
-      if (typeof(x["answers"][20]) != "undefined"  && typeof(x["answers"][20]["text"]) != "undefined"){
+      var email_field = 'fc7158d0Bcor'
+      var school_field = 'KQ20paH53WqB'
+      var country_field = '5jREhCBfprs7'
+      arr_push = ['','','']
+      for(y in x["answers"]){
+        if (x["answers"][y]["field"]["id"] == email_field){
+          arr_push[0] = x["answers"][y]["email"]
+        }
+        if (x["answers"][y]["field"]["id"] == school_field){
+          arr_push[1] = x["answers"][y]["text"]
+        }
+        if (x["answers"][y]["field"]["id"] == country_field){
+          arr_push[2] = x["answers"][y]["text"]
+        }
 
+      }
+      all_emails_schools.push(arr_push)
+      /*
+      if (typeof(x["answers"][20]) != "undefined"  && typeof(x["answers"][20]["text"]) != "undefined"){
         all_emails_schools.push([x["answers"][2]["email"], x["answers"][5]["text"], x["answers"][20]["text"]])
+
       }else{
         all_emails_schools.push([x["answers"][2]["email"], x["answers"][5]["text"], ""])
 
-      }
+      }*/
     }
 
     all_responses["main_registration2"] = await typeformAPI.responses.list({
@@ -59,6 +79,24 @@ async function getAPIResponses(){
 
       });
     for (const x of all_responses["main_registration2"]["items"]){
+      var email_field = 'fc7158d0Bcor'
+      var school_field = 'KQ20paH53WqB'
+      var country_field = '5jREhCBfprs7'
+      arr_push = ['','','']
+      for(y in x["answers"]){
+        if (x["answers"][y]["field"]["id"] == email_field){
+          arr_push[0] = x["answers"][y]["email"]
+        }
+        if (x["answers"][y]["field"]["id"] == school_field){
+          arr_push[1] = x["answers"][y]["text"]
+        }
+        if (x["answers"][y]["field"]["id"] == country_field){
+          arr_push[2] = x["answers"][y]["text"]
+        }
+
+      }
+      all_emails_schools.push(arr_push)
+      /*
 
       if (typeof(x["answers"][20]) != "undefined"  && typeof(x["answers"][20]["text"]) != "undefined"){
 
@@ -66,23 +104,26 @@ async function getAPIResponses(){
       }else{
         all_emails_schools.push([x["answers"][2]["email"], x["answers"][5]["text"], ""])
 
-      }      }
+      }*/
+    }
     all_responses["involvement_fest"] = await typeformAPI.responses.list({
           uid:'mxuplTow',
           pageSize:1000,
         });
     for (const x of all_responses["involvement_fest"]["items"]){
-          all_emails_schools.push([x["answers"][2]["email"], "University of Maryland-Baltimore County", ""])
+          all_emails_schools.push([x["answers"][2]["email"], "University of Maryland-Baltimore County", "United States"])
       }
     all_responses["priority_registrations"] = await typeformAPI.responses.list({
               uid:'Lv81gHpJ',
               pageSize:1000,
         });
       for (const x of all_responses["priority_registrations"]["items"]){
-          all_emails_schools.push([x["answers"][2]["email"], x["answers"][5]["text"], ""])
+
+          all_emails_schools.push([x["answers"][2]["email"], x["answers"][5]["text"], "United States"])
       }
 
     return all_emails_schools;
+
 
 
 }
@@ -119,6 +160,19 @@ bot.on("message", async msg => {
               if (updated_responses[x][0].trim().toLowerCase() == msg.content.trim().toLowerCase()){
                 registered = true;
                 var email = updated_responses[x][0]
+                if (updated_responses[x][1] == "University of Maryland-Baltimore County"){
+                  var guild = bot.guilds.cache.get(guild_id)
+                  let role = guild.roles.cache.find(role => role.name === umbc_hacker_role);
+                  guild.members.cache.get(msg.author.id).roles.add(role).catch(console.error);
+                  console.log("UMBC HACKER")
+                }
+                if (updated_responses[x][2] == "United States"){
+                  console.log("US HACKER")
+
+                  var guild = bot.guilds.cache.get(guild_id)
+                  let role = guild.roles.cache.find(role => role.name === us_hacker_role);
+                  guild.members.cache.get(msg.author.id).roles.add(role).catch(console.error);
+                }
                 fs.writeFile('users.txt', msg.author.id + ',' + email + '\n', { flag: 'a+' }, err => {})
 
               }
@@ -129,7 +183,6 @@ bot.on("message", async msg => {
             var guild = bot.guilds.cache.get(guild_id)
             let role = guild.roles.cache.find(role => role.name === hacker_role_name);
             guild.members.cache.get(msg.author.id).roles.add(role).catch(console.error);
-
           }else{
             const embed = new Discord.MessageEmbed()
               .setColor('#0099ff')
@@ -168,7 +221,7 @@ bot.on("message", async msg => {
             var guild = bot.guilds.cache.get(guild_id)
 
             let hacker_role = guild.roles.cache.find(role => role.name === hacker_role_name);
-            let career_fair_role = guild.roles.cache.find(role => role.name === "career_fair");
+            let career_fair_role = guild.roles.cache.find(role => role.name === "Networking Fair");
 
             let membersWithRole = hacker_role.members;
             membersWithRole.forEach(member =>{
@@ -180,7 +233,7 @@ bot.on("message", async msg => {
             var guild = bot.guilds.cache.get(guild_id)
 
             let hacker_role = guild.roles.cache.find(role => role.name === hacker_role_name);
-            let career_fair_role = guild.roles.cache.find(role => role.name === "career_fair");
+            let career_fair_role = guild.roles.cache.find(role => role.name === "Networking Fair");
 
             let membersWithRole = career_fair_role.members;
             membersWithRole.forEach(member =>{
